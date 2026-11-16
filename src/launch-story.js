@@ -12,6 +12,28 @@ export function restoreStaticLaunchStory(section) {
   });
 }
 
+export function updateLaunchStoryAvailability({ room, paused, reduced }) {
+  document.querySelectorAll('.launch-story').forEach(section => {
+    const enabled = section.classList.contains('is-launch-enhanced');
+    const notice = section.querySelector('[data-story-availability]');
+    const status = section.querySelector('[data-story-status]');
+    if (notice) notice.hidden = enabled;
+    if (status) status.textContent = !room
+      ? 'The window is too short for a fixed-screen demo. All three steps are shown below.'
+      : reduced ? 'Your device prefers reduced motion. You can choose to play this scroll demonstration.'
+        : paused ? 'Other site motion is paused. You can still play this scroll demonstration.'
+          : 'The scroll demonstration is off. Play it here, or read all three steps below.';
+    section.querySelectorAll('[data-story-mode-control]').forEach(button => {
+      button.hidden = button.hasAttribute('data-start-story') && (enabled || !room);
+      button.disabled = !room;
+      button.setAttribute('aria-label', 'Enable scroll demonstration');
+      button.setAttribute('aria-pressed', String(enabled));
+      const label = button.querySelector('[data-story-mode-label]');
+      if (label) label.textContent = enabled ? 'Read without animation' : !room ? 'Taller window needed' : 'Play scroll demo';
+    });
+  });
+}
+
 // Run before downstream ScrollTriggers so the pin's spacing is included in their positions.
 export function setupPinnedLaunchStories({ room, desktop }) {
   if (!room) return () => {};
@@ -66,17 +88,17 @@ export function setupPinnedLaunchStories({ room, desktop }) {
     timeline.addLabel('direction', 0)
       .to(progress, { scaleX: 1, duration: 1 }, 0)
       .to(market, { opacity: 1, scale: 1, duration: .08, stagger: .035 }, .04)
-      .to(copies[0], { autoAlpha: 0, y: -10, duration: .08 }, .24)
+      .set(copies[0], { autoAlpha: 0, immediateRender: false }, .33)
       .to(sheets[0], { xPercent: -7, yPercent: -8, scale: .86, rotation: -5, autoAlpha: .45, duration: .16 }, .24)
       .to(sheets[1], { autoAlpha: 1, yPercent: 0, scale: 1, rotation: 0, duration: .16 }, .27)
-      .to(copies[1], { autoAlpha: 1, y: 0, duration: .1 }, .3)
+      .set(copies[1], { autoAlpha: 1, y: 0, immediateRender: false }, .33)
       .addLabel('localize', .43)
       .to(local, { autoAlpha: 1, x: 0, duration: .12, stagger: .035 }, .34)
-      .to(copies[1], { autoAlpha: 0, y: -10, duration: .08 }, .64)
+      .set(copies[1], { autoAlpha: 0, immediateRender: false }, .72)
       .to(sheets[0], { xPercent: -14, yPercent: -13, scale: .78, rotation: -8, autoAlpha: .28, duration: .16 }, .64)
       .to(sheets[1], { xPercent: 6, yPercent: -6, scale: .88, rotation: 5, autoAlpha: .5, duration: .16 }, .64)
       .to(sheets[2], { autoAlpha: 1, yPercent: 0, scale: 1, rotation: 0, duration: .16 }, .67)
-      .to(copies[2], { autoAlpha: 1, y: 0, duration: .1 }, .7)
+      .set(copies[2], { autoAlpha: 1, y: 0, immediateRender: false }, .72)
       .addLabel('launch', .83);
     if (loop) timeline.to(loop, { rotation: 0, y: 0, duration: .13 }, .8);
     const handlers = buttons.map((button, index) => {

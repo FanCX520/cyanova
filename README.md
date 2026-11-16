@@ -46,7 +46,9 @@ The motion controls share the `cyanova-motion` preference. Device reduced-motion
 
 The dedicated launch workflow in `src/partials/launch-story.html` appears on Home and Solutions. Its three original service pillars are shown in one viewport-fixed stage. `src/launch-story.js` uses a ScrollTrigger pin and scrubbed GSAP timeline: scrolling drives the paper assembly, reversing scroll reverses it, and scrolling beyond the scene releases the page. It is not a timer-driven carousel. Stage buttons let users jump to a step or continue beyond it.
 
-Paused motion, reduced-motion preference, disabled JavaScript, and viewports shorter than 640px use ordinary stacked steps with all text available. Turning off the scene removes pin spacing and retains the active control's keyboard focus. The normal people-card emphasis remains outside this dedicated pinned scene.
+Paused motion and system reduced-motion preferences default to normal stacked steps, with an explicit explanation and a **Play scroll demo** control. Users can opt in to this one scroll demonstration without changing the site-wide saved pause or device setting. Its own **Read without animation** control returns to the readable list.
+
+Compact fixed-stage layouts support viewports at least 480px high. Shorter windows show all steps and a clear size explanation rather than silently hiding the effect. The homepage and Solutions hero buttons link directly to the demonstration. During phase changes one complete explanation remains visible; paper motion stays scrubbed and reversible. Turning off the scene removes pin spacing and retains the active control's keyboard focus.
 
 The original path-based wordmark is supplied in dark and light versions under `public/images/cyanova-wordmark*.svg`. `public/brand-kit.html` previews these assets and the 90 × 54 mm business card, with SVG and PDF downloads. The card is trim-size artwork without bleed or crop marks, and its colour/bleed requirements should be checked with the printer before production.
 
