@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
     siteUrl = url.origin;
   }
   return {
+    build: { rollupOptions: { input: { main: 'index.html', solutions: 'solutions.html', about: 'about.html', contact: 'contact.html' } } },
     server: { allowedHosts: ['.trycloudflare.com'] },
     preview: { allowedHosts: ['.trycloudflare.com'] },
     plugins: [{

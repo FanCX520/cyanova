@@ -14,6 +14,7 @@ const opportunityWord = document.querySelector('.opportunity-word');
 const opportunityWords = ['OPPORTUNITY.', 'POSSIBILITY.', 'POTENTIAL.', 'DIRECTION.', 'MOMENTUM.'];
 const media = gsap.matchMedia();
 const updateMotionButton = () => {
+  if (!motionButton) return;
   motionButton.setAttribute('aria-pressed', String(state.paused));
   motionButton.innerHTML = state.paused ? 'Play motion <span aria-hidden="true">▷</span>' : 'Pause motion <span aria-hidden="true">Ⅱ</span>';
 };
@@ -24,7 +25,7 @@ function setupMotion({ playIntro = false } = {}) {
   state.scroll = scrollProgress;
   document.documentElement.classList.toggle('motion-paused', state.paused);
   motionContext = gsap.context(() => {
-    if (state.paused) return;
+    if (state.paused || !hero || !opportunityWord) return;
     const cycle = gsap.timeline({ repeat: -1, repeatDelay: .55 });
     opportunityWords.slice(1).forEach((word, index) => {
       cycle.to(opportunityWord, { y: -12, autoAlpha: 0, duration: .2, ease: 'power2.in' }, index === 0 ? 1.45 : '+=1.1')
@@ -61,7 +62,7 @@ function setupMotion({ playIntro = false } = {}) {
   }, document.body);
 }
 setupMotion({ playIntro: !state.paused && window.scrollY < 100 }); updateMotionButton();
-motionButton.addEventListener('click', () => {
+motionButton?.addEventListener('click', () => {
   state.paused = !state.paused;
   state.reduced = state.paused;
   try { localStorage.setItem('cyanova-motion', state.paused ? 'paused' : 'playing'); } catch { /* Preference still applies for this visit. */ }
@@ -81,7 +82,7 @@ media.add('(min-width: 761px)', () => { closeMenu(); });
 document.querySelectorAll('details').forEach(detail => detail.addEventListener('toggle', () => ScrollTrigger.refresh()));
 const form = document.querySelector('#invite-form');
 const status = document.querySelector('#form-status');
-form.addEventListener('submit', e => { e.preventDefault(); if (!form.reportValidity()) return; status.textContent = 'Your introduction is ready to preview. Nothing has been sent or saved; invitation submissions are not connected yet.'; });
+form?.addEventListener('submit', e => { e.preventDefault(); if (!form.reportValidity()) return; status.textContent = 'Your introduction is ready to preview. Nothing has been sent or saved; invitation submissions are not connected yet.'; });
 document.fonts.ready.then(() => ScrollTrigger.refresh());
 window.addEventListener('pageshow', e => { if (e.persisted) ScrollTrigger.refresh(); });
 if (import.meta.hot) import.meta.hot.dispose(() => { motionContext?.revert(); media.revert(); });
