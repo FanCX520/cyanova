@@ -150,11 +150,23 @@ document.querySelectorAll('[data-story-mode-control]').forEach(button => listen(
   const start = !section.classList.contains('is-launch-enhanced');
   storyDisabled = !start; storyManualEnabled = start;
   rebuildMotion();
-  if (start && section.classList.contains('is-launch-enhanced')) requestAnimationFrame(() => {
+  if (start && section.classList.contains('is-launch-enhanced')) {
+    cancelAnimationFrame(motionRefreshFrame); motionRefreshFrame = 0;
+    ScrollTrigger.refresh();
     const persistentControl = section.querySelector('.launch-utilities [data-story-mode-control]');
     persistentControl?.focus({ preventScroll: true });
     scrollTo({ top: section.getBoundingClientRect().top + scrollY + 2, behavior: 'instant' });
-  });
+  }
+}));
+
+document.querySelectorAll('a[href="#launch-story"]').forEach(link => listen(link, 'click', event => {
+  if (event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const section = document.querySelector('.launch-story');
+  if (!section) return;
+  event.preventDefault();
+  if (location.hash !== '#launch-story') history.pushState(history.state, '', '#launch-story');
+  section.focus({ preventScroll: true });
+  scrollTo({ top: section.getBoundingClientRect().top + scrollY + 2, behavior: 'instant' });
 }));
 
 const menu = document.querySelector('#navigation');
