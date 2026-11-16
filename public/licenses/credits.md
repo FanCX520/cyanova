@@ -16,4 +16,4 @@ Illustrative stock photography from Unsplash; these images do not depict Cyanova
 
 ## Original artwork
 
-Paper edge, paper grain, Cyanova mark, hand-drawn arrows and circles, CSS collage elements, and the Canvas eclipse illustration were authored for this site. Relay imagery downloaded to the development reference directory is not included in the public assets.
+Paper edge, paper grain, Cyanova mark, hand-drawn arrows and circles, and CSS collage elements were authored for this site. The earlier Canvas eclipse is no longer used. The folded-paper footer landscape, folded sheets, seven-glyph typographic wordmark and business-card artwork are original Cyanova assets. Turion Space informed the footer composition and interaction direction; none of its imagery, letter paths, source code or other artwork is shipped. Reference material in the development artifacts directory is not part of the public build.

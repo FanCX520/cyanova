@@ -1,4 +1,19 @@
 import { defineConfig, loadEnv } from 'vite';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const footerPath = fileURLToPath(new URL('./src/partials/footer.html', import.meta.url));
+const sharedFooter = {
+  name: 'cyanova-shared-footer',
+  transformIndexHtml: {
+    order: 'pre',
+    handler(html) { return html.replace('<!-- CYANOVA:FOOTER -->', readFileSync(footerPath, 'utf8')); },
+  },
+  configureServer(server) {
+    server.watcher.add(footerPath);
+    server.watcher.on('change', file => { if (file === footerPath) server.ws.send({ type: 'full-reload' }); });
+  },
+};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
@@ -14,7 +29,7 @@ export default defineConfig(({ mode }) => {
     build: { rollupOptions: { input: { main: 'index.html', solutions: 'solutions.html', about: 'about.html', contact: 'contact.html' } } },
     server: { allowedHosts: ['.trycloudflare.com'] },
     preview: { allowedHosts: ['.trycloudflare.com'] },
-    plugins: [{
+    plugins: [sharedFooter, {
       name: 'cyanova-site-metadata',
       transformIndexHtml(html) {
         if (!siteUrl) return html;

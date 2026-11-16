@@ -1,88 +1,170 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { prepareRollingText, setupSiteInteractions, setupCopyControls } from './experience.js';
 import './style.css';
+import './footer.css';
 
 gsap.registerPlugin(ScrollTrigger);
+prepareRollingText();
+const disposeCopyControls = setupCopyControls();
 const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-let savedMotion;
-try { savedMotion = localStorage.getItem('cyanova-motion'); } catch { /* Storage may be unavailable in private browsing. */ }
-const startsPaused = reduceQuery.matches || savedMotion === 'paused';
-const state = { reduced: startsPaused, paused: startsPaused, scroll: 0 };
 const hero = document.querySelector('.hero');
-const motionButton = document.querySelector('.motion-toggle');
 const opportunityWord = document.querySelector('.opportunity-word');
-const opportunityWords = ['OPPORTUNITY.', 'POSSIBILITY.', 'POTENTIAL.', 'DIRECTION.', 'MOMENTUM.'];
-const media = gsap.matchMedia();
-const updateMotionButton = () => {
-  if (!motionButton) return;
-  motionButton.setAttribute('aria-pressed', String(state.paused));
-  motionButton.innerHTML = state.paused ? 'Play motion <span aria-hidden="true">▷</span>' : 'Pause motion <span aria-hidden="true">Ⅱ</span>';
-};
-let motionContext;
-function setupMotion({ playIntro = false } = {}) {
-  const scrollProgress = state.scroll;
-  motionContext?.revert();
-  state.scroll = scrollProgress;
-  document.documentElement.classList.toggle('motion-paused', state.paused);
-  motionContext = gsap.context(() => {
-    if (state.paused || !hero || !opportunityWord) return;
-    const cycle = gsap.timeline({ repeat: -1, repeatDelay: .55 });
-    opportunityWords.slice(1).forEach((word, index) => {
-      cycle.to(opportunityWord, { y: -12, autoAlpha: 0, duration: .2, ease: 'power2.in' }, index === 0 ? 1.45 : '+=1.1')
-        .call(() => { opportunityWord.textContent = word; })
-        .fromTo(opportunityWord, { y: 12, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: .28, ease: 'power2.out', clearProps: 'transform' }, '>');
-    });
-    if (playIntro) {
+const opportunityWords = ['OPPORTUNITY.', 'POSSIBILITY.', 'OPENING.', 'PROSPECT.', 'CHANCE.'];
+const motionControls = [...document.querySelectorAll('.motion-toggle, [data-motion-control]')];
+const listeners = [];
+let userPaused = false;
+let paused = reduceQuery.matches;
+let motionMedia;
+let introConsumed = false;
+let wordIndex = 0;
+try { userPaused = localStorage.getItem('cyanova-motion') === 'paused'; } catch {}
+
+function listen(node, type, handler, options) {
+  node?.addEventListener(type, handler, options);
+  listeners.push(() => node?.removeEventListener(type, handler, options));
+}
+
+function updateMotionControls() {
+  paused = reduceQuery.matches || userPaused;
+  document.documentElement.classList.toggle('motion-paused', paused);
+  motionControls.forEach(button => {
+    button.hidden = false;
+    button.disabled = reduceQuery.matches;
+    button.setAttribute('aria-pressed', String(paused));
+    button.setAttribute('aria-label', 'Reduce motion');
+    const label = button.querySelector('[data-motion-label]');
+    if (label) label.textContent = paused ? 'Motion off' : 'Motion on';
+    else button.innerHTML = paused ? 'Play motion <span aria-hidden="true">▷</span>' : 'Pause motion <span aria-hidden="true">Ⅱ</span>';
+    button.title = reduceQuery.matches ? 'Reduced motion follows your device preference.' : 'Control animation across the site.';
+  });
+}
+
+function setupOpportunityCycle() {
+  if (!hero || !opportunityWord) return () => {};
+  let visible = hero.getBoundingClientRect().bottom > 0 && hero.getBoundingClientRect().top < innerHeight;
+  const cycle = gsap.timeline({ paused: true, repeat: -1 });
+  cycle.addLabel('hold', 0)
+    .to(opportunityWord, { yPercent: -24, autoAlpha: 0, duration: .2, ease: 'power2.in' }, 2.5)
+    .call(() => {
+      wordIndex = (wordIndex + 1) % opportunityWords.length;
+      opportunityWord.textContent = opportunityWords[wordIndex];
+    })
+    .set(opportunityWord, { yPercent: 27 })
+    .to(opportunityWord, { yPercent: 0, autoAlpha: 1, duration: .34, ease: 'power3.out' });
+  const update = () => { if (visible && !document.hidden && !paused) cycle.play(); else cycle.pause(); };
+  const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); }, { threshold: .04 });
+  observer.observe(hero);
+  document.addEventListener('visibilitychange', update);
+  const hide = () => cycle.pause();
+  window.addEventListener('pagehide', hide);
+  update();
+  return () => { observer.disconnect(); document.removeEventListener('visibilitychange', update); window.removeEventListener('pagehide', hide); cycle.kill(); };
+}
+
+function rebuildMotion({ playIntro = false } = {}) {
+  motionMedia?.revert();
+  motionMedia = undefined;
+  updateMotionControls();
+  if (paused) return;
+  motionMedia = gsap.matchMedia();
+  motionMedia.add({
+    allowed: '(prefers-reduced-motion: no-preference)',
+    finePointer: '(hover: hover) and (pointer: fine)',
+    desktop: '(min-width: 761px)',
+  }, context => {
+    if (!context.conditions.allowed || paused) return;
+    const cleanups = [];
+    if (playIntro && !introConsumed && scrollY < 100 && !location.hash && performance.getEntriesByType('navigation')[0]?.type !== 'back_forward') {
+      introConsumed = true;
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      intro.from('.site-header .brand, .site-header nav a, .header-link', { y: -12, autoAlpha: 0, duration: .65, stagger: .07 }, .15)
-        .from('.hero-intro', { y: 13, autoAlpha: 0, duration: .6 }, .4)
-        .from('.hero h1 > span', { y: 48, autoAlpha: 0, duration: 1, stagger: .13 }, .55)
-        .from('.hero-bottom > *', { y: 16, autoAlpha: 0, duration: .7, stagger: .1 }, 1.1)
-        .from('.hero-note', { y: 35, rotation: -3, autoAlpha: 0, duration: .9 }, 1.35)
-        .from('.hero-footer', { autoAlpha: 0, duration: .7 }, 1.65);
+      const lines = document.querySelectorAll('.hero h1 > span');
+      if (lines.length) {
+        intro.from(lines, { y: 16, duration: .62, stagger: .06, clearProps: 'transform' }, 0)
+          .from('.hero-note', { y: 18, rotation: 1, duration: .78, clearProps: 'transform' }, .1);
+      } else {
+        const title = document.querySelector('.page-hero h1');
+        const note = document.querySelector('.page-note');
+        if (title) intro.from(title, { y: 12, duration: .6, clearProps: 'transform' }, 0);
+        if (note) intro.from(note, { y: 15, rotation: 1, duration: .75, clearProps: 'transform' }, .1);
+      }
     }
-    gsap.to('.hero-content', { y: -45, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: .8 } });
-    const unseen = selector => gsap.utils.toArray(selector).filter(element => element.getBoundingClientRect().top > window.innerHeight * .92);
-    const reveal = (selector, vars) => { const targets = unseen(selector); if (targets.length) gsap.from(targets, vars); };
-    reveal('.belief-copy > *', { y: 22, autoAlpha: 0, duration: .8, stagger: .1, scrollTrigger: { trigger: '.belief-copy', start: 'top 86%', once: true } });
-    reveal('.belief-ticket', { y: 45, rotation: 4, autoAlpha: 0, duration: 1, scrollTrigger: { trigger: '.belief-art', start: 'top 75%', once: true } });
-    const path = document.querySelector('.circled path');
-    if (path && unseen('.circled').length) {
-      const length = path.getTotalLength();
-      gsap.fromTo(path, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: 1.3, ease: 'power2.out', scrollTrigger: { trigger: '.circled', start: 'top 83%', once: true } });
-    }
-    unseen('.photo').forEach((photo, i) => {
-      gsap.from(photo, { y: 65, rotation: i % 2 ? -5 : 4, autoAlpha: 0, duration: 1, scrollTrigger: { trigger: photo, start: 'top 93%', once: true } });
+    cleanups.push(setupOpportunityCycle());
+
+    // Preserve the site's tactile paper choreography without hiding readable copy.
+    const paperObjects = [...document.querySelectorAll('.belief-ticket,.photo,.notebook,.small-note,.letter,.round-sticker')];
+    paperObjects.forEach(object => {
+      if (object.getBoundingClientRect().top <= innerHeight * .95) return;
+      gsap.from(object, {
+        y: 25, duration: .75, ease: 'power3.out', clearProps: 'transform',
+        scrollTrigger: { trigger: object, start: 'top 96%', once: true },
+      });
     });
-    reveal('.round-sticker', { scale: .65, rotation: 40, autoAlpha: 0, duration: .8, ease: 'back.out(1.2)', scrollTrigger: { trigger: '.people-board', start: 'top 80%', once: true } });
-    reveal('.notebook', { y: 40, rotation: 4, autoAlpha: 0, duration: 1, scrollTrigger: { trigger: '.workbench', start: 'top 85%', once: true } });
-    reveal('.small-note', { y: 25, rotation: -3, autoAlpha: 0, duration: .9, scrollTrigger: { trigger: '.workbench', start: 'top 65%', once: true } });
-    reveal('.possibility-pair article', { y: 50, autoAlpha: 0, duration: .9, stagger: .16, scrollTrigger: { trigger: '.possibility-pair', start: 'top 88%', once: true } });
-    reveal('.letter', { y: 35, rotation: -2, autoAlpha: 0, duration: 1, scrollTrigger: { trigger: '.letter', start: 'top 90%', once: true } });
+    const circle = document.querySelector('.circled path');
+    if (circle && circle.getBoundingClientRect().top > innerHeight) {
+      const length = circle.getTotalLength();
+      gsap.fromTo(circle, { strokeDasharray: length, strokeDashoffset: length }, {
+        strokeDashoffset: 0, duration: .85, ease: 'power2.out',
+        scrollTrigger: { trigger: circle.closest('.circled'), start: 'top 90%', once: true },
+      });
+    }
+    cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer }));
+    return () => cleanups.forEach(dispose => dispose());
   }, document.body);
 }
-setupMotion({ playIntro: !state.paused && window.scrollY < 100 }); updateMotionButton();
-motionButton?.addEventListener('click', () => {
-  state.paused = !state.paused;
-  state.reduced = state.paused;
-  try { localStorage.setItem('cyanova-motion', state.paused ? 'paused' : 'playing'); } catch { /* Preference still applies for this visit. */ }
-  setupMotion(); updateMotionButton(); window.dispatchEvent(new Event('cyanova:motion'));
-});
-reduceQuery.addEventListener('change', e => { state.reduced = e.matches; state.paused = e.matches; setupMotion(); updateMotionButton(); window.dispatchEvent(new Event('cyanova:motion')); });
+
+rebuildMotion({ playIntro: true });
+motionControls.forEach(button => listen(button, 'click', () => {
+  if (reduceQuery.matches) return;
+  userPaused = !paused;
+  try { localStorage.setItem('cyanova-motion', userPaused ? 'paused' : 'playing'); } catch {}
+  rebuildMotion();
+}));
+listen(reduceQuery, 'change', () => rebuildMotion());
 
 const menu = document.querySelector('#navigation');
 const menuButton = document.querySelector('.menu-toggle');
-const closeMenu = () => { menuButton.setAttribute('aria-expanded', 'false'); menuButton.setAttribute('aria-label', 'Open navigation'); menu.classList.remove('is-open'); };
-menuButton.addEventListener('click', () => { const open = menuButton.getAttribute('aria-expanded') !== 'true'; menuButton.setAttribute('aria-expanded', String(open)); menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation'); menu.classList.toggle('is-open', open); });
-menu.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && menuButton.getAttribute('aria-expanded') === 'true') { closeMenu(); menuButton.focus(); } });
-document.addEventListener('click', e => { if (!e.target.closest('.site-header')) closeMenu(); });
-media.add('(min-width: 761px)', () => { closeMenu(); });
+const closeMenu = () => {
+  menuButton?.setAttribute('aria-expanded', 'false');
+  menuButton?.setAttribute('aria-label', 'Open navigation');
+  menu?.classList.remove('is-open');
+};
+listen(menuButton, 'click', () => {
+  const open = menuButton.getAttribute('aria-expanded') !== 'true';
+  menuButton.setAttribute('aria-expanded', String(open));
+  menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+  menu?.classList.toggle('is-open', open);
+});
+menu?.querySelectorAll('a').forEach(link => listen(link, 'click', closeMenu));
+listen(document, 'keydown', event => {
+  if (event.key === 'Escape' && menuButton?.getAttribute('aria-expanded') === 'true') { closeMenu(); menuButton.focus(); }
+});
+listen(document, 'click', event => { if (!event.target.closest('.site-header')) closeMenu(); });
+const desktop = window.matchMedia('(min-width: 761px)');
+listen(desktop, 'change', () => { if (desktop.matches) closeMenu(); });
 
-document.querySelectorAll('details').forEach(detail => detail.addEventListener('toggle', () => ScrollTrigger.refresh()));
+const route = value => value.replace(/\.html$/, '').replace(/\/$/, '') || '/';
+document.querySelectorAll('.site-header nav a,.footer-navigation nav a').forEach(link => {
+  const destination = new URL(link.href);
+  if (!destination.hash && destination.origin === location.origin && route(destination.pathname) === route(location.pathname)) link.setAttribute('aria-current', 'page');
+});
+
+document.querySelectorAll('details').forEach(detail => listen(detail, 'toggle', () => ScrollTrigger.refresh()));
 const form = document.querySelector('#invite-form');
 const status = document.querySelector('#form-status');
-form?.addEventListener('submit', e => { e.preventDefault(); if (!form.reportValidity()) return; status.textContent = 'Your introduction is ready to preview. Nothing has been sent or saved; invitation submissions are not connected yet.'; });
+listen(form, 'submit', event => {
+  event.preventDefault();
+  if (!form.reportValidity()) return;
+  status.textContent = 'Your introduction is ready to preview. Nothing has been sent or saved; invitation submissions are not connected yet.';
+});
 document.fonts.ready.then(() => ScrollTrigger.refresh());
-window.addEventListener('pageshow', e => { if (e.persisted) ScrollTrigger.refresh(); });
-if (import.meta.hot) import.meta.hot.dispose(() => { motionContext?.revert(); media.revert(); });
+listen(window, 'pageshow', event => {
+  if (event.persisted) {
+    try { userPaused = localStorage.getItem('cyanova-motion') === 'paused'; } catch {}
+    rebuildMotion();
+    ScrollTrigger.refresh();
+  }
+});
+if (import.meta.hot) import.meta.hot.dispose(() => {
+  motionMedia?.revert(); disposeCopyControls(); listeners.forEach(remove => remove());
+});

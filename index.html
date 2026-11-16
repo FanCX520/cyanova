@@ -27,22 +27,22 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="Cyanova home"><span class="brand-mark" aria-hidden="true"></span>cyanova<span class="brand-period">.</span></a>
+    <a class="brand" href="#top" aria-label="Cyanova home"><img class="brand-wordmark" src="/images/cyanova-wordmark-light.svg" width="156" height="27" alt="Cyanova" decoding="async" /></a>
     <nav id="navigation" aria-label="Main navigation"><a href="/solutions.html">Solutions</a><a href="/about.html">About</a><a href="#people">The people</a></nav>
     <a class="header-link" href="#invitation">Request an invitation <span aria-hidden="true">↗</span></a>
     <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation"><span></span><span></span></button>
   </header>
-  <main id="main">
+  <main id="main" tabindex="-1">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero-shade" aria-hidden="true"></div>
       <div class="hero-content">
         <p class="hero-intro"><i></i> An invitation to what comes next</p>
-        <h1 id="hero-title"><span>A FAIR CHANCE.</span><span>A NEW</span><span class="hero-wordline"><span class="opportunity-word" aria-live="polite">OPPORTUNITY.</span></span></h1>
-        <p class="sr-only" id="opportunity-status">The final word cycles through related ideas: opportunity, possibility, potential, direction and momentum.</p>
+        <h1 id="hero-title"><span>A FAIR CHANCE.</span><span>A NEW</span><span class="hero-wordline"><span class="sr-only">OPPORTUNITY.</span><span class="opportunity-word" aria-hidden="true">OPPORTUNITY.</span></span></h1>
+        <p class="sr-only" id="opportunity-status">The final word cycles through opportunity, possibility, opening, prospect and chance.</p>
         <div class="hero-bottom"><p>We offer equal chance for<br />doers, makers and dreamers.</p><a class="button button-cyan" href="#invitation">Find your beginning <span aria-hidden="true">↗</span></a></div>
       </div>
       <div class="hero-note paper" aria-hidden="true"><span class="tape"></span><span class="hand">The future isn't finished.<br />Neither are we.</span><svg viewBox="0 0 120 65"><path d="M8 12c80-21 97 8 69 28-22 15-37-4-18-9 19-6 29 9 34 23m-20-9 21 12 8-22"/></svg></div>
-      <button class="motion-toggle" type="button" aria-pressed="false">Pause motion <span aria-hidden="true">Ⅱ</span></button>
+      <button class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion <span aria-hidden="true">Ⅱ</span></button>
       <div class="hero-footer"><span>Currently invitation-only</span><a href="#belief">Keep exploring <span aria-hidden="true">↓</span></a></div>
     </section>
 
@@ -85,7 +85,7 @@
 
     <section class="invitation" id="invitation" aria-labelledby="invitation-title"><div class="invitation-copy"><p class="invitation-status"><i></i> Currently invitation-only</p><h2 id="invitation-title">EVERY NEXT<br />CHAPTER STARTS<br />WITH A <span class="hand">hello.</span></h2><p>Tell us a little about yourself and what you’re working toward. A finished plan is not a prerequisite.</p><svg class="invite-arrow" viewBox="0 0 180 100" aria-hidden="true"><path d="M9 15c81-31 136 6 118 33-17 24-56 10-32-4 25-13 54 4 61 42m-24-15 26 17 10-34"/></svg></div><form id="invite-form" class="letter paper"><div class="letter-top"><span>To: Cyanova</span><span class="letter-stamp" aria-hidden="true">C<span>↗</span></span></div><h3>Your beginning, in a few words.</h3><p id="preview-note" class="preview-note">Form preview — nothing is sent or stored yet.</p><div class="field"><label for="name">Your name</label><input id="name" name="name" autocomplete="name" placeholder="How should we address you?" required maxlength="120" /></div><div class="field"><label for="email">Your email</label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254" /></div><div class="field"><label for="context">What’s on your mind? <span>(optional)</span></label><textarea id="context" name="context" rows="3" maxlength="2500" placeholder="An idea, a question, a direction…"></textarea></div><button class="button button-dark" type="submit" aria-describedby="preview-note">Preview introduction <span aria-hidden="true">↗</span></button><p id="form-status" class="form-status" role="status" aria-live="polite"></p></form></section>
   </main>
-  <footer class="site-footer" id="footer"><div class="footer-hero"><p class="hand">Something worth beginning.</p><h2>CYANOVA<span>.</span></h2></div><div class="footer-grid"><div class="footer-block"><span class="footer-label">Company</span><strong>Cyanova LLC</strong><p>Registered agent information<br />87110 Albuquerque, STE R1209<br />Mountain Road PL NE</p></div><div class="footer-block"><span class="footer-label">Contact</span><a class="footer-email" href="mailto:hi@cyanova.us">hi@cyanova.us <span aria-hidden="true">↗</span></a><p><span class="footer-label footer-label-inline">Socials</span><br />@cyanova</p></div><a href="#top" class="back-top">Back to the beginning <span aria-hidden="true">↑</span></a></div><div class="footer-bottom"><span>© 2026 Cyanova LLC</span><span>Something worth beginning.</span><span>Built with possibility.</span></div></footer>
+  <!-- CYANOVA:FOOTER -->
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
