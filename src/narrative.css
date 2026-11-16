@@ -1,0 +1,9 @@
+/* Attention follows the reading flow; no text is hidden or made unfocusable. */
+.people-board .photo img{transition:opacity .5s ease,transform .45s ease}
+.people-board[data-reading-mode=on] .person:not([data-reading-active=true]) .photo img{opacity:.82}
+.people-board .person-text h3{position:relative}
+.people-board .person-text h3::after{content:'';position:absolute;left:0;bottom:-8px;width:54px;height:2px;background:var(--cyan);opacity:0;transform:scaleX(.25);transform-origin:left center;transition:opacity .45s ease,transform .55s cubic-bezier(.22,.61,.36,1);pointer-events:none}
+.people-board[data-reading-mode=on] .person[data-reading-active=true] .person-text h3::after{opacity:.85;transform:scaleX(1)}
+.solution-grid .solution-card::after{content:'';position:absolute;inset:7px;border:1px solid currentColor;opacity:0;transform:scale(.985);transition:opacity .45s ease,transform .5s ease;pointer-events:none}
+.solution-grid[data-reading-mode=on] .solution-card[data-reading-active=true]::after{opacity:.32;transform:scale(1)}
+@media(prefers-reduced-motion:reduce){.people-board .photo img{opacity:1!important}.people-board .person-text h3::after,.solution-grid .solution-card::after{display:none}}

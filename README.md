@@ -27,11 +27,10 @@ The production output is generated in `dist/` and is suitable for Cloudflare Pag
 
 The native Cloudflare Pages project `cyanova-git` is connected directly to `FanCX520/cyanova`. Cloudflare builds `main` automatically; this `design/footer-experience` branch is configured for native preview builds. No Cloudflare API token is copied into GitHub. The included Actions workflow validates builds, while Cloudflare handles deployment.
 
-- Git-connected site: https://cyanova-git.pages.dev
-- Existing production: https://cyanova.us (still on the separate Direct Upload project `cyanova`)
-- Redesign preview: https://footer-experience.cyanova-19t.pages.dev
+- Native Git deployment: https://cyanova-git.pages.dev
+- Production website: https://cyanova.us
 
-The existing production domain has not been migrated to the Git-connected project. That is a separate DNS/domain cutover and must not be described as already complete.
+The public domain and Cloudflare aliases are managed by the owner. Verify the production domain after each release; do not change DNS or create new preview deployments as part of visual or motion updates.
 
 The company site is separate from the Cyaraon personal-site project.
 
@@ -42,6 +41,8 @@ Vite builds the home page plus `solutions.html`, `about.html` and `contact.html`
 `src/footer.css` styles the warm paper/mint closing scene. `src/experience.js` adds reversible link-label rolls, small input-responsive paper movements, scroll-linked background/wordmark depth and clipboard feedback. These additions do not replace the site's existing pages, material palette or paper motifs. No borrowed Turion artwork or source code is included.
 
 The motion controls share the `cyanova-motion` preference. Device reduced-motion settings take priority. The hero word cycle stops offscreen or in a hidden tab; GSAP media contexts revert their animations and listeners when preferences change. Text remains readable when animation is off or JavaScript is unavailable.
+
+`src/narrative.js` and `src/narrative.css` coordinate motion at the scene level: headline first, ink and key paper objects second, then the next section. The people and solutions groups highlight one reading item at a time; desktop scrolling and intentional pointer movement share that emphasis, while mobile uses each card's centre entering the reading area. This is visual attention only: body text stays readable, keyboard focus is not moved, and scrolling is never pinned or intercepted. Pause/reduced-motion removes the reading emphasis and restores the ordinary static design.
 
 The original path-based wordmark is supplied in dark and light versions under `public/images/cyanova-wordmark*.svg`. `public/brand-kit.html` previews these assets and the 90 × 54 mm business card, with SVG and PDF downloads. The card is trim-size artwork without bleed or crop marks, and its colour/bleed requirements should be checked with the printer before production.
 

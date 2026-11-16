@@ -1,8 +1,10 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { prepareRollingText, setupSiteInteractions, setupCopyControls } from './experience.js';
+import { setupNarrativeMotion } from './narrative.js';
 import './style.css';
 import './footer.css';
+import './narrative.css';
 
 gsap.registerPlugin(ScrollTrigger);
 prepareRollingText();
@@ -79,35 +81,29 @@ function rebuildMotion({ playIntro = false } = {}) {
       introConsumed = true;
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
       const lines = document.querySelectorAll('.hero h1 > span');
+      intro.addLabel('lead', 0);
       if (lines.length) {
-        intro.from(lines, { y: 16, duration: .62, stagger: .06, clearProps: 'transform' }, 0)
-          .from('.hero-note', { y: 18, rotation: 1, duration: .78, clearProps: 'transform' }, .1);
+        intro.from(lines, { y: 24, opacity: .7, duration: .72, stagger: .08, clearProps: 'transform,opacity' }, 'lead')
+          .from('.hero-bottom', { y: 8, opacity: .92, duration: .55, clearProps: 'transform,opacity' }, 'lead+=0.26')
+          .from('.hero-note .hand', { y: 5, opacity: .72, duration: .55, clearProps: 'transform,opacity' }, 'lead+=0.46');
+        const noteInk = document.querySelector('.hero-note svg path');
+        if (noteInk) {
+          const length = noteInk.getTotalLength();
+          intro.fromTo(noteInk, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: .65, ease: 'power2.out' }, 'lead+=0.46');
+        }
       } else {
         const title = document.querySelector('.page-hero h1');
         const note = document.querySelector('.page-note');
-        if (title) intro.from(title, { y: 12, duration: .6, clearProps: 'transform' }, 0);
-        if (note) intro.from(note, { y: 15, rotation: 1, duration: .75, clearProps: 'transform' }, .1);
+        const description = document.querySelector('.page-lede');
+        if (title) intro.from(title, { y: 18, opacity: .8, duration: .72, clearProps: 'transform,opacity' }, 'lead');
+        if (description) intro.from(description, { y: 6, duration: .6, clearProps: 'transform' }, 'lead+=0.2');
+        if (note) intro.from(note, { y: 16, rotation: 2, duration: .75, clearProps: 'transform' }, 'lead+=0.3');
       }
     }
     cleanups.push(setupOpportunityCycle());
 
-    // Preserve the site's tactile paper choreography without hiding readable copy.
-    const paperObjects = [...document.querySelectorAll('.belief-ticket,.photo,.notebook,.small-note,.letter,.round-sticker')];
-    paperObjects.forEach(object => {
-      if (object.getBoundingClientRect().top <= innerHeight * .95) return;
-      gsap.from(object, {
-        y: 25, duration: .75, ease: 'power3.out', clearProps: 'transform',
-        scrollTrigger: { trigger: object, start: 'top 96%', once: true },
-      });
-    });
-    const circle = document.querySelector('.circled path');
-    if (circle && circle.getBoundingClientRect().top > innerHeight) {
-      const length = circle.getTotalLength();
-      gsap.fromTo(circle, { strokeDasharray: length, strokeDashoffset: length }, {
-        strokeDashoffset: 0, duration: .85, ease: 'power2.out',
-        scrollTrigger: { trigger: circle.closest('.circled'), start: 'top 90%', once: true },
-      });
-    }
+    // One scene-level sequence hands attention from headline to paper, not paragraph by paragraph.
+    cleanups.push(setupNarrativeMotion({ desktop: context.conditions.desktop, finePointer: context.conditions.finePointer, context }));
     cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer }));
     return () => cleanups.forEach(dispose => dispose());
   }, document.body);
