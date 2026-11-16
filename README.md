@@ -25,10 +25,13 @@ The production output is generated in `dist/` and is suitable for Cloudflare Pag
 - Build output directory: `dist`
 - Production branch: `main`
 
-A GitHub Actions workflow is included to deploy `main` to the existing Cloudflare Pages project `cyanova`. It requires these repository secrets; a checked-in workflow alone does not mean deployment is configured:
+The native Cloudflare Pages project `cyanova-git` is connected directly to `FanCX520/cyanova`. Cloudflare builds `main` automatically; this `design/footer-experience` branch is configured for native preview builds. No Cloudflare API token is copied into GitHub. The included Actions workflow validates builds, while Cloudflare handles deployment.
 
-- `CLOUDFLARE_ACCOUNT_ID`: `0d2ba62dc97be3113b6389503a7c5633`
-- `CLOUDFLARE_API_TOKEN`: a scoped Cloudflare API token with Pages project deployment permission
+- Git-connected site: https://cyanova-git.pages.dev
+- Existing production: https://cyanova.us (still on the separate Direct Upload project `cyanova`)
+- Redesign preview: https://footer-experience.cyanova-19t.pages.dev
+
+The existing production domain has not been migrated to the Git-connected project. That is a separate DNS/domain cutover and must not be described as already complete.
 
 The company site is separate from the Cyaraon personal-site project.
 
