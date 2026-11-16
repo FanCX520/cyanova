@@ -2,14 +2,17 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { prepareRollingText, setupSiteInteractions, setupCopyControls } from './experience.js';
 import { setupNarrativeMotion } from './narrative.js';
+import { setupPinnedLaunchStories, captureActiveLaunchStory, restoreStaticLaunchStory } from './launch-story.js';
 import './style.css';
 import './footer.css';
 import './narrative.css';
+import './launch-story.css';
 
 gsap.registerPlugin(ScrollTrigger);
 prepareRollingText();
 const disposeCopyControls = setupCopyControls();
 const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+const storyRoom = window.matchMedia('(min-height: 640px)');
 const hero = document.querySelector('.hero');
 const opportunityWord = document.querySelector('.opportunity-word');
 const opportunityWords = ['OPPORTUNITY.', 'POSSIBILITY.', 'OPENING.', 'PROSPECT.', 'CHANCE.'];
@@ -65,15 +68,21 @@ function setupOpportunityCycle() {
 }
 
 function rebuildMotion({ playIntro = false } = {}) {
+  const storyAnchor = captureActiveLaunchStory();
+  const activeStoryControl = document.activeElement?.closest('.launch-story') ? document.activeElement : null;
+  const restoreStoryFocus = () => {
+    if (activeStoryControl?.isConnected && !activeStoryControl.hidden && !activeStoryControl.disabled && activeStoryControl.getClientRects().length) activeStoryControl.focus({ preventScroll: true });
+  };
   motionMedia?.revert();
   motionMedia = undefined;
   updateMotionControls();
-  if (paused) return;
+  if (paused) { restoreStaticLaunchStory(storyAnchor); restoreStoryFocus(); return; }
   motionMedia = gsap.matchMedia();
   motionMedia.add({
     allowed: '(prefers-reduced-motion: no-preference)',
     finePointer: '(hover: hover) and (pointer: fine)',
     desktop: '(min-width: 761px)',
+    storyRoom: '(min-height: 640px)',
   }, context => {
     if (!context.conditions.allowed || paused) return;
     const cleanups = [];
@@ -102,13 +111,17 @@ function rebuildMotion({ playIntro = false } = {}) {
     }
     cleanups.push(setupOpportunityCycle());
 
+    cleanups.push(setupPinnedLaunchStories({ room: context.conditions.storyRoom, desktop: context.conditions.desktop }));
     // One scene-level sequence hands attention from headline to paper, not paragraph by paragraph.
     cleanups.push(setupNarrativeMotion({ desktop: context.conditions.desktop, finePointer: context.conditions.finePointer, context }));
     cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer }));
     return () => cleanups.forEach(dispose => dispose());
   }, document.body);
+  restoreStaticLaunchStory(storyAnchor);
+  restoreStoryFocus();
 }
 
+listen(storyRoom, 'change', () => rebuildMotion());
 rebuildMotion({ playIntro: true });
 motionControls.forEach(button => listen(button, 'click', () => {
   if (reduceQuery.matches) return;
