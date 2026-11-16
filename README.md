@@ -20,14 +20,19 @@ The production output is generated in `dist/` and is suitable for Cloudflare Pag
 
 ## Cloudflare Pages
 
-- Framework preset: Vite
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Production branch: `main`
+- Node.js: 22
 
-GitHub Actions deploys `main` to the existing Cloudflare Pages project `cyanova`. Add these repository secrets before enabling the workflow:
+### Native GitHub deployment
 
-- `CLOUDFLARE_ACCOUNT_ID`: `0d2ba62dc97be3113b6389503a7c5633`
-- `CLOUDFLARE_API_TOKEN`: a scoped Cloudflare API token with Pages project deployment permission
+The Pages project `cyanova-git` is connected directly to `FanCX520/cyanova`. Cloudflare clones the repository, builds the site and deploys it when `main` changes. No Cloudflare API token needs to be stored in GitHub Actions. The existing workflow validates the build and the four generated pages.
+
+Git-connected site: https://cyanova-git.pages.dev
+
+### Existing production project
+
+The original Pages project `cyanova` remains a separate Direct Upload project serving `cyanova.us` and `cyanova-19t.pages.dev`. It is not automatically updated by the native Git connection above. Moving its custom domain requires a separately verified DNS/domain migration. Do not delete that project or change unrelated DNS records.
 
 The company site is separate from the Cyaraon personal-site project.
