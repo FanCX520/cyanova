@@ -2,22 +2,30 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { prepareRollingText, setupSiteInteractions, setupCopyControls } from './experience.js';
 import { setupNarrativeMotion } from './narrative.js';
+import { setupPinnedLaunchStories, captureActiveLaunchStory, restoreStaticLaunchStory, updateLaunchStoryAvailability } from './launch-story.js';
 import './style.css';
 import './footer.css';
 import './narrative.css';
+import './launch-story.css';
+import './story-availability.css';
+import './launch-material.css';
 
 gsap.registerPlugin(ScrollTrigger);
 prepareRollingText();
 const disposeCopyControls = setupCopyControls();
 const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+const storyRoom = window.matchMedia('(min-height: 480px)');
 const hero = document.querySelector('.hero');
 const opportunityWord = document.querySelector('.opportunity-word');
 const opportunityWords = ['OPPORTUNITY.', 'POSSIBILITY.', 'OPENING.', 'PROSPECT.', 'CHANCE.'];
 const motionControls = [...document.querySelectorAll('.motion-toggle, [data-motion-control]')];
 const listeners = [];
 let userPaused = false;
+let storyManualEnabled = false;
+let storyDisabled = false;
 let paused = reduceQuery.matches;
 let motionMedia;
+let motionRefreshFrame = 0;
 let introConsumed = false;
 let wordIndex = 0;
 try { userPaused = localStorage.getItem('cyanova-motion') === 'paused'; } catch {}
@@ -65,18 +73,32 @@ function setupOpportunityCycle() {
 }
 
 function rebuildMotion({ playIntro = false } = {}) {
+  cancelAnimationFrame(motionRefreshFrame);
+  motionRefreshFrame = 0;
+  const storyAnchor = captureActiveLaunchStory();
+  const activeStoryControl = document.activeElement?.closest('.launch-story') ? document.activeElement : null;
+  const restoreStoryFocus = () => {
+    if (activeStoryControl?.isConnected && !activeStoryControl.hidden && !activeStoryControl.disabled && activeStoryControl.getClientRects().length) activeStoryControl.focus({ preventScroll: true });
+  };
   motionMedia?.revert();
   motionMedia = undefined;
   updateMotionControls();
-  if (paused) return;
+  if (paused && !storyManualEnabled) {
+    updateLaunchStoryAvailability({ room: storyRoom.matches, paused, reduced: reduceQuery.matches });
+    restoreStaticLaunchStory(storyAnchor); restoreStoryFocus(); return;
+  }
   motionMedia = gsap.matchMedia();
   motionMedia.add({
     allowed: '(prefers-reduced-motion: no-preference)',
+    always: '(min-width: 0px)',
     finePointer: '(hover: hover) and (pointer: fine)',
     desktop: '(min-width: 761px)',
+    storyRoom: '(min-height: 480px)',
   }, context => {
-    if (!context.conditions.allowed || paused) return;
+    if (!context.conditions.allowed && !storyManualEnabled) return;
     const cleanups = [];
+    if (!storyDisabled && (!paused || storyManualEnabled)) cleanups.push(setupPinnedLaunchStories({ room: context.conditions.storyRoom, desktop: context.conditions.desktop }));
+    if (paused) return () => cleanups.forEach(dispose => dispose());
     if (playIntro && !introConsumed && scrollY < 100 && !location.hash && performance.getEntriesByType('navigation')[0]?.type !== 'back_forward') {
       introConsumed = true;
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -107,16 +129,46 @@ function rebuildMotion({ playIntro = false } = {}) {
     cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer }));
     return () => cleanups.forEach(dispose => dispose());
   }, document.body);
+  motionRefreshFrame = requestAnimationFrame(() => { motionRefreshFrame = 0; ScrollTrigger.refresh(); });
+  updateLaunchStoryAvailability({ room: storyRoom.matches, paused, reduced: reduceQuery.matches });
+  restoreStaticLaunchStory(storyAnchor);
+  restoreStoryFocus();
 }
 
+listen(storyRoom, 'change', () => rebuildMotion());
+listen(reduceQuery, 'change', () => { storyManualEnabled = false; rebuildMotion(); });
 rebuildMotion({ playIntro: true });
 motionControls.forEach(button => listen(button, 'click', () => {
   if (reduceQuery.matches) return;
+  storyManualEnabled = false; storyDisabled = false;
   userPaused = !paused;
   try { localStorage.setItem('cyanova-motion', userPaused ? 'paused' : 'playing'); } catch {}
   rebuildMotion();
 }));
-listen(reduceQuery, 'change', () => rebuildMotion());
+document.querySelectorAll('[data-story-mode-control]').forEach(button => listen(button, 'click', () => {
+  if (!storyRoom.matches) return;
+  const section = button.closest('.launch-story');
+  const start = !section.classList.contains('is-launch-enhanced');
+  storyDisabled = !start; storyManualEnabled = start;
+  rebuildMotion();
+  if (start && section.classList.contains('is-launch-enhanced')) {
+    cancelAnimationFrame(motionRefreshFrame); motionRefreshFrame = 0;
+    ScrollTrigger.refresh();
+    const persistentControl = section.querySelector('.launch-utilities [data-story-mode-control]');
+    persistentControl?.focus({ preventScroll: true });
+    scrollTo({ top: section.getBoundingClientRect().top + scrollY + 2, behavior: 'instant' });
+  }
+}));
+
+document.querySelectorAll('a[href="#launch-story"]').forEach(link => listen(link, 'click', event => {
+  if (event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const section = document.querySelector('.launch-story');
+  if (!section) return;
+  event.preventDefault();
+  if (location.hash !== '#launch-story') history.pushState(history.state, '', '#launch-story');
+  section.focus({ preventScroll: true });
+  scrollTo({ top: section.getBoundingClientRect().top + scrollY + 2, behavior: 'instant' });
+}));
 
 const menu = document.querySelector('#navigation');
 const menuButton = document.querySelector('.menu-toggle');
@@ -162,5 +214,6 @@ listen(window, 'pageshow', event => {
   }
 });
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  cancelAnimationFrame(motionRefreshFrame);
   motionMedia?.revert(); disposeCopyControls(); listeners.forEach(remove => remove());
 });
