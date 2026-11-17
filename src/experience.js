@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MOTION } from './motion-settings.js';
 
 export function prepareRollingText() {
   document.querySelectorAll('.site-header nav a, a.button, .underlined-link').forEach(link => {
@@ -35,7 +36,7 @@ export function prepareRollingText() {
 }
 
 // Called inside one gsap.matchMedia context, which owns every animation below.
-export function setupSiteInteractions({ finePointer }) {
+export function setupSiteInteractions({ finePointer, context }) {
   const cleanups = [];
   let disposed = false;
   const listen = (node, type, handler, options) => {
@@ -51,7 +52,7 @@ export function setupSiteInteractions({ finePointer }) {
     const stagger = Math.min(.014, .15 / Math.max(1, first.length));
     gsap.set(first, { y: 0, yPercent: 0 });
     gsap.set(second, { y: 0, yPercent: 112 });
-    const roll = gsap.timeline({ paused: true, defaults: { duration: .28, ease: 'power3.inOut' } })
+    const roll = gsap.timeline({ paused: true, defaults: { duration: MOTION.response, ease: MOTION.respond } })
       .to(first, { yPercent: -112, stagger }, 0)
       .fromTo(second, { yPercent: 112 }, { yPercent: 0, stagger, immediateRender: false }, .025);
     let inside = false;
@@ -75,7 +76,7 @@ export function setupSiteInteractions({ finePointer }) {
       defaults: { duration: 1, ease: 'none' },
       scrollTrigger: {
         trigger: footer, start: 'clamp(top bottom)', end: 'clamp(bottom bottom)',
-        scrub: .55, invalidateOnRefresh: true, id: 'cyanova-footer-scene',
+        scrub: MOTION.scrub, invalidateOnRefresh: true, id: 'cyanova-footer-scene',
       },
     })
       .fromTo(landscape, { yPercent: 7 }, { yPercent: 0 }, 0)
@@ -107,12 +108,22 @@ export function setupSiteInteractions({ finePointer }) {
     const rotations = cards.map(card => Number(gsap.getProperty(card, 'rotation')) || 0);
     cards.forEach((card, index) => {
       const response = gsap.timeline({ paused: true }).to(card, {
-        y: -5, rotation: rotations[index] * .6, duration: .24, ease: 'power2.out',
+        y: -5, rotation: rotations[index] * .6, duration: MOTION.response, ease: MOTION.draw,
       });
       listen(card, 'pointerenter', () => response.play());
       listen(card, 'pointerleave', () => response.reverse());
     });
   }
+  document.querySelectorAll('details').forEach(detail => {
+    const copy = [...detail.children].filter(child => child.matches('p'));
+    if (!copy.length) return;
+    listen(detail, 'toggle', () => {
+      if (disposed) return;
+      gsap.killTweensOf(copy);
+      gsap.set(copy, { clearProps: 'transform,opacity' });
+      if (detail.open) gsap.fromTo(copy, { y: 6, opacity: .88 }, { y: 0, opacity: 1, duration: MOTION.response, ease: MOTION.settle, overwrite: 'auto', clearProps: 'transform,opacity' });
+    });
+  });
   return () => { disposed = true; cleanups.forEach(cleanup => cleanup()); };
 }
 

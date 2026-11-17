@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MOTION } from './motion-settings.js';
 import { prepareRollingText, setupSiteInteractions, setupCopyControls } from './experience.js';
 import { setupNarrativeMotion } from './narrative.js';
 import { setupPinnedLaunchStories, captureActiveLaunchStory, restoreStaticLaunchStory, updateLaunchStoryAvailability } from './launch-story.js';
@@ -9,6 +10,7 @@ import './narrative.css';
 import './launch-story.css';
 import './story-availability.css';
 import './launch-material.css';
+import './motion-details.css';
 
 gsap.registerPlugin(ScrollTrigger);
 prepareRollingText();
@@ -28,6 +30,7 @@ let motionMedia;
 let motionRefreshFrame = 0;
 let introConsumed = false;
 let wordIndex = 0;
+let menuEntranceTween;
 try { userPaused = localStorage.getItem('cyanova-motion') === 'paused'; } catch {}
 
 function listen(node, type, handler, options) {
@@ -72,6 +75,11 @@ function setupOpportunityCycle() {
   return () => { observer.disconnect(); document.removeEventListener('visibilitychange', update); window.removeEventListener('pagehide', hide); cycle.kill(); };
 }
 
+function requestMotionRefresh() {
+  if (motionRefreshFrame) return;
+  motionRefreshFrame = requestAnimationFrame(() => { motionRefreshFrame = 0; ScrollTrigger.refresh(); });
+}
+
 function rebuildMotion({ playIntro = false } = {}) {
   cancelAnimationFrame(motionRefreshFrame);
   motionRefreshFrame = 0;
@@ -81,7 +89,8 @@ function rebuildMotion({ playIntro = false } = {}) {
     if (activeStoryControl?.isConnected && !activeStoryControl.hidden && !activeStoryControl.disabled && activeStoryControl.getClientRects().length) activeStoryControl.focus({ preventScroll: true });
   };
   motionMedia?.revert();
-  motionMedia = undefined;
+  menuEntranceTween?.kill();
+  menuEntranceTween = undefined;
   updateMotionControls();
   if (paused && !storyManualEnabled) {
     updateLaunchStoryAvailability({ room: storyRoom.matches, paused, reduced: reduceQuery.matches });
@@ -101,35 +110,38 @@ function rebuildMotion({ playIntro = false } = {}) {
     if (paused) return () => cleanups.forEach(dispose => dispose());
     if (playIntro && !introConsumed && scrollY < 100 && !location.hash && performance.getEntriesByType('navigation')[0]?.type !== 'back_forward') {
       introConsumed = true;
-      const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      const intro = gsap.timeline({ defaults: { ease: MOTION.settle } });
       const lines = document.querySelectorAll('.hero h1 > span');
       intro.addLabel('lead', 0);
       if (lines.length) {
-        intro.from(lines, { y: 24, opacity: .7, duration: .72, stagger: .08, clearProps: 'transform,opacity' }, 'lead')
+        intro.from(lines, { y: 24, opacity: .7, duration: MOTION.enter, stagger: .08, clearProps: 'transform,opacity' }, 'lead')
           .from('.hero-bottom', { y: 8, opacity: .92, duration: .55, clearProps: 'transform,opacity' }, 'lead+=0.26')
-          .from('.hero-note .hand', { y: 5, opacity: .72, duration: .55, clearProps: 'transform,opacity' }, 'lead+=0.46');
+          .from('.hero-note .hand', { y: 5, opacity: .72, duration: .55, clearProps: 'transform,opacity' }, 'lead+=0.46')
+          .from('.hero-note .tape', { scaleX: .72, opacity: .55, transformOrigin: 'left center', duration: MOTION.attach, clearProps: 'transform,opacity,transformOrigin' }, 'lead+=0.32');
         const noteInk = document.querySelector('.hero-note svg path');
         if (noteInk) {
           const length = noteInk.getTotalLength();
-          intro.fromTo(noteInk, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: .65, ease: 'power2.out' }, 'lead+=0.46');
+          intro.fromTo(noteInk, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: MOTION.ink, ease: MOTION.draw }, 'lead+=0.46');
         }
       } else {
         const title = document.querySelector('.page-hero h1');
         const note = document.querySelector('.page-note');
         const description = document.querySelector('.page-lede');
-        if (title) intro.from(title, { y: 18, opacity: .8, duration: .72, clearProps: 'transform,opacity' }, 'lead');
+        if (title) intro.from(title, { y: 18, opacity: .8, duration: MOTION.enter, clearProps: 'transform,opacity' }, 'lead');
         if (description) intro.from(description, { y: 6, duration: .6, clearProps: 'transform' }, 'lead+=0.2');
         if (note) intro.from(note, { y: 16, rotation: 2, duration: .75, clearProps: 'transform' }, 'lead+=0.3');
+        const tape = note?.querySelector('.tape');
+        if (tape) intro.from(tape, { scaleX: .72, opacity: .55, transformOrigin: 'left center', duration: MOTION.attach, clearProps: 'transform,opacity,transformOrigin' }, 'lead+=0.5');
       }
     }
     cleanups.push(setupOpportunityCycle());
 
     // One scene-level sequence hands attention from headline to paper, not paragraph by paragraph.
     cleanups.push(setupNarrativeMotion({ desktop: context.conditions.desktop, finePointer: context.conditions.finePointer, context }));
-    cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer }));
+    cleanups.push(setupSiteInteractions({ finePointer: context.conditions.finePointer, context }));
     return () => cleanups.forEach(dispose => dispose());
   }, document.body);
-  motionRefreshFrame = requestAnimationFrame(() => { motionRefreshFrame = 0; ScrollTrigger.refresh(); });
+  requestMotionRefresh();
   updateLaunchStoryAvailability({ room: storyRoom.matches, paused, reduced: reduceQuery.matches });
   restoreStaticLaunchStory(storyAnchor);
   restoreStoryFocus();
@@ -182,6 +194,11 @@ listen(menuButton, 'click', () => {
   menuButton.setAttribute('aria-expanded', String(open));
   menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
   menu?.classList.toggle('is-open', open);
+  menuEntranceTween?.kill();
+  if (open && !paused) {
+    const links = [...menu.querySelectorAll('a')];
+    menuEntranceTween = gsap.fromTo(links, { y: -8, autoAlpha: .82 }, { y: 0, autoAlpha: 1, duration: MOTION.response, stagger: .035, ease: MOTION.settle, overwrite: 'auto', clearProps: 'transform,opacity,visibility' });
+  }
 });
 menu?.querySelectorAll('a').forEach(link => listen(link, 'click', closeMenu));
 listen(document, 'keydown', event => {
@@ -197,7 +214,7 @@ document.querySelectorAll('.site-header nav a,.footer-navigation nav a').forEach
   if (!destination.hash && destination.origin === location.origin && route(destination.pathname) === route(location.pathname)) link.setAttribute('aria-current', 'page');
 });
 
-document.querySelectorAll('details').forEach(detail => listen(detail, 'toggle', () => ScrollTrigger.refresh()));
+document.querySelectorAll('details').forEach(detail => listen(detail, 'toggle', requestMotionRefresh));
 const form = document.querySelector('#invite-form');
 const status = document.querySelector('#form-status');
 listen(form, 'submit', event => {
@@ -210,7 +227,6 @@ listen(window, 'pageshow', event => {
   if (event.persisted) {
     try { userPaused = localStorage.getItem('cyanova-motion') === 'paused'; } catch {}
     rebuildMotion();
-    ScrollTrigger.refresh();
   }
 });
 if (import.meta.hot) import.meta.hot.dispose(() => {

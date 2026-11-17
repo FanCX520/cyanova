@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MOTION } from './motion-settings.js';
 
 // Visual attention is independent of keyboard focus: no element is focused here.
 function readingGroup(group, { desktop, finePointer, context }) {
@@ -30,7 +31,7 @@ function readingGroup(group, { desktop, finePointer, context }) {
     // Only the transform changes; surrounding layout and all text stay readable.
     context.add(() => gsap.to(items, {
       scale: i => desktop && i === index ? 1.014 : 1,
-      duration: .48, ease: 'power3.out', overwrite: 'auto',
+      duration: MOTION.emphasis, ease: MOTION.settle, overwrite: 'auto',
     }));
   };
   const enter = index => { inside = true; scrollIndex = index; render(); };
@@ -84,7 +85,7 @@ export function setupNarrativeMotion({ desktop, finePointer, context }) {
   if (hero && heroContent) {
     gsap.to(heroContent, {
       y: desktop ? -30 : -12, ease: 'none',
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom 12%', scrub: .65, invalidateOnRefresh: true, id: 'cyanova-opening-handoff' },
+      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom 12%', scrub: MOTION.scrub, invalidateOnRefresh: true, id: 'cyanova-opening-handoff' },
     });
   }
 
@@ -103,19 +104,25 @@ export function setupNarrativeMotion({ desktop, finePointer, context }) {
       else if (section.matches('.invitation')) { heading = section.querySelector('.invitation-copy h2'); papers = [...section.querySelectorAll('.letter')]; }
       else if (section.matches('.scene-footer')) heading = section.querySelector('.footer-cta h2');
       else { heading = section.querySelector('h2'); papers = [...section.querySelectorAll('.contact-sheet')]; }
-      const ink = [...section.querySelectorAll('.circled path')];
+      const ink = [...section.querySelectorAll('.circled path,.notebook-arrow path,.invite-arrow path')];
+      const tapes = [...section.querySelectorAll('.tape')];
+      const strips = [...section.querySelectorAll('.notebook h2 > span')];
+      const stamps = [...section.querySelectorAll('.letter-stamp')];
       const scene = gsap.timeline({
-        defaults: { ease: 'power3.out' },
+        defaults: { ease: MOTION.settle },
         scrollTrigger: { trigger: section, start: 'top 86%', once: true },
       });
       scene.addLabel('read', 0);
-      if (heading) scene.from(heading, { y: desktop ? 20 : 12, opacity: .84, duration: .72, clearProps: 'transform,opacity' }, 'read');
+      if (heading) scene.from(heading, { y: desktop ? 20 : 12, opacity: .84, duration: MOTION.enter, clearProps: 'transform,opacity' }, 'read');
       ink.forEach(path => {
         const length = path.getTotalLength();
-        scene.fromTo(path, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: .9, ease: 'power2.out' }, 'read+=0.12');
+        scene.fromTo(path, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, duration: MOTION.ink, ease: MOTION.draw }, path.closest('.circled') ? 'read+=0.12' : 'read+=0.34');
       });
-      if (papers.length) scene.from(papers, { y: desktop ? 28 : 17, duration: .85, stagger: .09, clearProps: 'transform' }, 'read+=0.14');
+      if (papers.length) scene.from(papers, { y: desktop ? 28 : 17, duration: MOTION.paper, stagger: .09, clearProps: 'transform' }, 'read+=0.14');
       if (secondary.length) scene.from(secondary, { y: 15, duration: .65, clearProps: 'transform' }, 'read+=0.35');
+      if (tapes.length) scene.from(tapes, { scaleX: .72, opacity: .55, transformOrigin: 'left center', duration: MOTION.attach, stagger: .06, clearProps: 'transform,opacity,transformOrigin' }, 'read+=0.42');
+      if (strips.length) scene.from(strips, { x: -12, scaleX: .96, duration: .65, clearProps: 'transform' }, 'read+=0.34');
+      if (stamps.length) scene.from(stamps, { scale: .82, transformOrigin: 'center center', duration: MOTION.attach, clearProps: 'transform,transformOrigin' }, 'read+=0.56');
     }
     const group = section.querySelector('.people-board,.solution-grid');
     if (group) disposers.push(readingGroup(group, { desktop, finePointer, context }));

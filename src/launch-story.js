@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MOTION } from './motion-settings.js';
 
 export function captureActiveLaunchStory() {
   return [...document.querySelectorAll('.launch-story.is-launch-enhanced')].find(section => section.dataset.storyPinned === 'true') || null;
@@ -55,6 +56,17 @@ export function setupPinnedLaunchStories({ room, desktop }) {
     const market = sheets[0].querySelectorAll('.launch-market-map > span');
     const local = sheets[1].querySelectorAll('.launch-local-lines > span');
     const loop = sheets[2].querySelector('.launch-loop-mark');
+    const strip = sheets[0].querySelector('.launch-torn-strip');
+    const tape = sheets[1].querySelector('.launch-note-tape');
+    const stripInk = sheets[0].querySelector('.launch-ink-line path');
+    const localInk = [...sheets[1].querySelectorAll('.launch-ink-line path')];
+    const arrowInk = loop?.querySelector('path');
+    [stripInk, ...localInk, arrowInk].filter(Boolean).forEach(path => {
+      const length = path.getTotalLength();
+      gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
+    });
+    if (strip) gsap.set(strip, { scaleX: .88, y: 4, transformOrigin: 'left center' });
+    if (tape) gsap.set(tape, { scaleX: .7, opacity: .45, transformOrigin: 'left center' });
     gsap.set(market, { opacity: .5, scale: .94 });
     gsap.set(local, { autoAlpha: 0, x: -8 });
     if (loop) gsap.set(loop, { transformOrigin: '50% 50%', rotation: -12, y: 10 });
@@ -62,14 +74,14 @@ export function setupPinnedLaunchStories({ room, desktop }) {
     section.dataset.storyStep = '0';
     let timeline;
     timeline = gsap.timeline({
-      defaults: { ease: 'none' },
+      defaults: { ease: MOTION.linear },
       scrollTrigger: {
         trigger: section,
         pin: stage,
         pinSpacing: true,
         start: 'top top',
         end: () => `+=${Math.round(innerHeight * (desktop ? 2.6 : 2.2))}`,
-        scrub: .4,
+        scrub: MOTION.scrub,
         anticipatePin: 1,
         invalidateOnRefresh: true,
         id: 'cyanova-launch-story',
@@ -100,7 +112,13 @@ export function setupPinnedLaunchStories({ room, desktop }) {
       .to(sheets[2], { autoAlpha: 1, yPercent: 0, scale: 1, rotation: -1, duration: .16 }, .67)
       .set(copies[2], { autoAlpha: 1, y: 0, immediateRender: false }, .72)
       .addLabel('launch', .83);
+    // Fractions below belong to the existing duration-1 scroll story, not wall-clock seconds.
+    if (strip) timeline.to(strip, { scaleX: 1, y: 0, duration: .12 }, .03);
+    if (stripInk) timeline.to(stripInk, { strokeDashoffset: 0, duration: .14 }, .04);
+    if (tape) timeline.to(tape, { scaleX: 1, opacity: 1, duration: .1 }, .34);
+    if (localInk.length) timeline.to(localInk, { strokeDashoffset: 0, duration: .12, stagger: .035 }, .36);
     if (loop) timeline.to(loop, { rotation: 0, y: 0, duration: .13 }, .8);
+    if (arrowInk) timeline.to(arrowInk, { strokeDashoffset: 0, duration: .13 }, .8);
     const handlers = buttons.map((button, index) => {
       const handler = () => {
         const trigger = timeline.scrollTrigger;
